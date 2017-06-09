@@ -8,6 +8,10 @@
 #include "php_ini.h"
 #include "ext/standard/info.h"
 #include "php_secp256k1.h"
+#include <secp256k1.h>
+#include <secp256k1_ecdh.h>
+#include <secp256k1_recovery.h>
+
 #include "lax_der.h"
 
 static zend_class_entry *spl_ce_InvalidArgumentException;
@@ -217,6 +221,7 @@ static void secp256k1_ctx_dtor(zend_resource *rsrc TSRMLS_DC)
     secp256k1_context *ctx = (secp256k1_context*) rsrc->ptr;
     if (ctx) {
         secp256k1_context_destroy(ctx);
+        //efree(ctx);
     }
 }
 
@@ -536,23 +541,18 @@ PHP_FUNCTION(secp256k1_ecdsa_verify) {
     secp256k1_pubkey *pubkey;
     zend_string *msg32;
     int result;
-
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrSr", &zCtx, &zSig, &msg32, &zPubKey) == FAILURE) {
         return;
     }
-
     if ((ctx = (secp256k1_context *)zend_fetch_resource2_ex(zCtx, SECP256K1_CTX_RES_NAME, le_secp256k1_ctx, -1)) == NULL) {
         RETURN_FALSE;
     }
-
     if ((sig = (secp256k1_ecdsa_signature *)zend_fetch_resource2_ex(zSig, SECP256K1_SIG_RES_NAME, le_secp256k1_sig, -1)) == NULL) {
         RETURN_FALSE;
     }
-
     if ((pubkey = (secp256k1_pubkey *)zend_fetch_resource2_ex(zPubKey, SECP256K1_PUBKEY_RES_NAME, le_secp256k1_pubkey, -1)) == NULL) {
         RETURN_FALSE;
     }
-
     secp256k1_ecdsa_signature *sigcpy = emalloc(sizeof(secp256k1_ecdsa_signature));
     secp256k1_ecdsa_signature_normalize(ctx, sigcpy, sig);
     result = secp256k1_ecdsa_verify(ctx, sigcpy, msg32->val, pubkey);
@@ -609,34 +609,28 @@ PHP_FUNCTION (secp256k1_ecdsa_sign)
     secp256k1_ecdsa_signature *newsig;
     zend_string *msg32, *seckey;
     int result;
-
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rz/SS", &zCtx, &zSig, &msg32, &seckey) == FAILURE) {
         RETURN_FALSE;
     }
-
     if ((ctx = (secp256k1_context *)zend_fetch_resource2_ex(zCtx, SECP256K1_CTX_RES_NAME, le_secp256k1_ctx, -1)) == NULL) {
         RETURN_FALSE;
     }
-
     if (msg32->len != HASH_LENGTH) {
         zend_throw_exception_ex(spl_ce_InvalidArgumentException, 0
         TSRMLS_CC, "secp256k1_ecdsa_sign(): Parameter 3 should be 32 bytes");
         return;
     }
-
     if (seckey->len != SECRETKEY_LENGTH) {
         zend_throw_exception_ex(spl_ce_InvalidArgumentException, 0
         TSRMLS_CC, "secp256k1_ecdsa_sign(): Parameter 4 should be 32 bytes");
         return;
     }
-
     newsig = emalloc(sizeof(secp256k1_ecdsa_signature));
     result = secp256k1_ecdsa_sign(ctx, newsig, msg32->val, seckey->val, NULL, NULL);
     if (result) {
         ZVAL_NULL(zSig);
         ZVAL_RES(zSig, zend_register_resource(newsig, le_secp256k1_sig));
     }
-
     RETURN_LONG(result);
 }
 /* }}} */
