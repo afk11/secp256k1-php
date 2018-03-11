@@ -35,3 +35,6 @@ script:
         && ./tests \
         && cd ..
     - php -dextension=secp256k1.so vendor/phpunit/phpunit/phpunit tests/
+
+after_script:
+    - bash <(curl -s https://codecov.io/bash)
