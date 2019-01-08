@@ -301,6 +301,8 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(arginfo_secp256k1_ecdh, IS_LONG, 0)
     ZEND_ARG_TYPE_INFO(1, result, IS_STRING, 0)
     ZEND_ARG_TYPE_INFO(0, ecPublicKey, IS_RESOURCE, 0)
     ZEND_ARG_TYPE_INFO(0, privKey, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(1, hashFunction, IS_CALLABLE, 0)
+    ZEND_ARG_TYPE_INFO(1, data, IS_STRING, 0)
 ZEND_END_ARG_INFO();
 
 /* {{{ resource_functions[]
@@ -1417,17 +1419,18 @@ PHP_FUNCTION(secp256k1_ecdsa_recover)
 
 /* Begin EcDH module functions */
 
-/* {{{ proto int secp256k1_ecdh(resource context, string &result, resource pubKey, string key32)
+/* {{{ proto int secp256k1_ecdh(resource context, string &result, resource pubKey, string key32, ?callable hashFxn, ?string data)
  * Compute an EC Diffie-Hellman secret in constant time. */
 PHP_FUNCTION(secp256k1_ecdh)
 {
-    zval *zCtx, *zResult, *zPubKey;
+    zval *zCtx, *zResult, *zPubKey, *zHashFxn;
     secp256k1_context *ctx;
     secp256k1_pubkey *pubkey;
     zend_string *privKey;
+    php_secp256k1_hashfp_container *hashfp;
     int result = 0;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rz/rS", &zCtx, &zResult, &zPubKey, &privKey) == FAILURE) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rz/rSzS", &zCtx, &zResult, &zPubKey, &privKey, &zHashFxn, &data) == FAILURE) {
         RETURN_LONG(result);
     }
 
@@ -1439,9 +1442,23 @@ PHP_FUNCTION(secp256k1_ecdh)
         RETURN_LONG(result);
     }
 
+    if (zHashFxn != NULL) {
+        if (!zend_is_callable(callback_func, 0, NULL)) {
+            zend_string *callback_name = zend_get_callable_name(callback_func);
+            char* error = sprintf("Not a valid callback function %s", ZSTR_VAL(callback_name));
+            zend_string_release(callback_name);
+            zend_throw_exception_ex(spl_ce_InvalidArgumentException, 0 TSRMLS_CC,
+                    "secp256k1_context_ecdh(): Parameter 5 should be a valid callable");
+            return;
+        }
+        hashfp = malloc(sizeof(php_secp256k1_hashfp_container));
+        hashfp->zHashFxn = zHashFxn;
+        hashfp->caller = php_call_hashfp;
+    }
+
     unsigned char resultChars[32];
     memset(resultChars, 0, 32);
-    result = secp256k1_ecdh(ctx, resultChars, pubkey, privKey->val);
+    result = secp256k1_ecdh(ctx, resultChars, pubkey, privKey->val, NULL, NULL);
     if (result == 1) {
         zval_dtor(zResult);
         ZVAL_STRINGL(zResult, resultChars, 32);
