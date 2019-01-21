@@ -57,13 +57,17 @@ PHP_FUNCTION(secp256k1_ec_pubkey_tweak_add);
 PHP_FUNCTION(secp256k1_ec_pubkey_tweak_mul);
 
 /* Recovery module */
+# if HAVE_SECP256K1_RECOVERY == 1
 PHP_FUNCTION(secp256k1_ecdsa_sign_recoverable);
 PHP_FUNCTION(secp256k1_ecdsa_recover);
 PHP_FUNCTION(secp256k1_ecdsa_recoverable_signature_convert);
 PHP_FUNCTION(secp256k1_ecdsa_recoverable_signature_serialize_compact);
 PHP_FUNCTION(secp256k1_ecdsa_recoverable_signature_parse_compact);
+# endif
 
 /* ECDH module */
+# if HAVE_SECP256K1_ECDH == 1
 PHP_FUNCTION(secp256k1_ecdh);
+# endif
 
 #endif	/* PHP_SECP256K1_H */
