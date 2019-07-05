@@ -25,6 +25,7 @@ rm configure && ./buildconf --force
     --with-png-dir \
     --with-pcre-regex \
     --with-libdir="lib/$debMultiarch" \
+    CC=${PHP_CC} \
     $PHP_EXTRA_CONFIGURE_ARGS \
 && make -j "$(nproc)" \
 && make install \

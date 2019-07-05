@@ -1,10 +1,12 @@
 #!/bin/bash
 
 _PHP=${PHPQA_PHP_VERSION}
+_BUILD_CC=${PHPQA_BUILD_CC}
 
 _php="7.1.7"
 _sha256="0d42089729be7b2bb0308cbe189c2782f9cb4b07078c8a235495be5874fff729"
 _gpg="A917B1ECDA84AEC2B568FED6F50ABC807BD5DCD0 528995BFEDFBA7191D46839EF9BA0ADA31CBD89E"
+_cc="gcc"
 
 if [ ${_PHP} = "7.0.33" ]; then
     _php=${_PHP}
@@ -24,5 +26,9 @@ elif [ ${_PHP} = "7.3.7" ]; then
     _gpg="CBAF69F173A0FEA4B537F470D66C9593118BCCB6 F38252826ACD957EF380D39F2F7956BC5DA04B5D"
 fi
 
+if [ "${_BUILD_CC}" = "clang" ]; then
+    _cc=${_BUILD_CC}
+fi
+
 echo "build php ${_php} ${_sha256}"
-docker build --build-arg BUILD_PHP_VERSION=${_php} --build-arg BUILD_PHP_SHA256=${_sha256} --build-arg BUILD_GPG_KEYS="${_gpg}" . -t secp256k1-${_php}
+docker build --build-arg BUILD_CONFIGURE_ARGS=${PHPQA_CONFIGURE_ARGS} --build-arg BUILD_CC=${_cc} --build-arg BUILD_CC=${_cc} --build-arg BUILD_PHP_VERSION=${_php} --build-arg BUILD_PHP_SHA256=${_sha256} --build-arg BUILD_GPG_KEYS="${_gpg}" . -t secp256k1-${_php}

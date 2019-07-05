@@ -22,4 +22,5 @@ fi
 docker run -it \
      -v ${_GCOV_DIR}:/usr/src/php/lcov_html \
      -v ${_EXT_DIR}:/usr/src/php/ext/secp256k1 \
+     --env PHP_CC="${PHPQA_BUILD_CC}" \
      --name s1 secp256k1-${_php} ${_CMD}

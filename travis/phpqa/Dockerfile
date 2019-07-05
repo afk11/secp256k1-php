@@ -6,6 +6,8 @@ ARG BUILD_PHP_SHA256="0d42089729be7b2bb0308cbe189c2782f9cb4b07078c8a235495be5874
 ARG BUILD_CHECK_SIGNATURE=true
 ARG BUILD_CUSTOM_URL=''
 ARG BUILD_REPO_URL=''
+ARG BUILD_CONFIGURE_ARGS=''
+ARG BUILD_CC='gcc'
 
 ENV PHPIZE_DEPS \
 		autoconf \
@@ -13,6 +15,7 @@ ENV PHPIZE_DEPS \
 		file \
 		g++ \
 		gcc \
+		clang \
 		libc-dev \
 		lcov \
 		libpcre3-dev \
@@ -32,6 +35,8 @@ ENV PHP_SHA256="$BUILD_PHP_SHA256"
 ENV CHECK_SIGNATURE="$BUILD_CHECK_SIGNATURE"
 ENV CUSTOM_URL="$BUILD_CUSTOM_URL"
 ENV REPO_URL="$BUILD_REPO_URL"
+ENV PHP_EXTRA_CONFIGURE_ARGS="$BUILD_CONFIGURE_ARGS"
+ENV PHP_CC="$BUILD_CC"
 
 RUN apt-get update && apt-get install -y \
 		$PHPIZE_DEPS \
@@ -125,6 +130,7 @@ RUN docker-php-source extract \
         --with-png-dir \
         --with-pcre-regex \
 		--with-libdir="lib/$debMultiarch" \
+		CC=${PHP_CC} \
 		$PHP_EXTRA_CONFIGURE_ARGS \
 	&& make -j "$(nproc)" \
 	&& make install \
@@ -142,7 +148,7 @@ RUN docker-php-source extract \
 RUN cd / && git clone https://github.com/bitcoin-core/secp256k1.git \
     && cd secp256k1 && git checkout $SECP256K1_COMMIT \
     && ./autogen.sh \
-    && ./configure --enable-benchmark=no --enable-tests=no --enable-experimental --enable-module-ecdh --enable-module-recovery \
+    && ./configure --enable-benchmark=no --enable-tests=no --enable-experimental --enable-module-ecdh --enable-module-recovery CC=${PHP_CC} \
     && make && make install && ldconfig
 
 ADD scripts/coverage.sh /usr/bin
